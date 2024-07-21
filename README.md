@@ -13,7 +13,5 @@ This is because, the LBW infants who survive infancy are at increased risk of lo
 
 # Streamlit Cloud
 
-The application has been deployed in the Streamlit Cloud.You can access here: https://gladys340-landslide-prediction-app--app-mee8h3.streamlitapp.com/
-
-
+The application is an ongoing process to be deployed in the Streamlit Cloud. The link to access will be made available when ready
 
