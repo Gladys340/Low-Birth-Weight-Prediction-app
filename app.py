@@ -1,3 +1,4 @@
+from typing import Dict
 import streamlit as st
 import joblib
 import pandas as pd
@@ -6,7 +7,7 @@ from os.path import dirname, join, realpath
 from sklearn.impute import SimpleImputer
 from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.preprocessing import OneHotEncoder
-
+from encoders import *
 # Load the trained model using st.cache_resource
 @st.cache_resource
 def load_model(model_name):
@@ -14,13 +15,13 @@ def load_model(model_name):
         model = joblib.load(f)
     return model
 
-model = load_model("MODEL/histgradientboosting-model.pkl")
+model = load_model("MODEL/greens.pkl")
 
 # Function to preprocess input data
 def preprocess_data(mothersage, typeplaceofresidence, education, wealth, ancvisits, deliverybyCS, 
                     twbirthinlast3years, twinchild, drugsforintestinalparasites):
     # Create DataFrame from user input
-    data = pd.DataFrame({
+    data = {
         'mothersage': [mothersage],
         'typeplaceofresidence': [typeplaceofresidence],
         'education': [education],
@@ -30,19 +31,20 @@ def preprocess_data(mothersage, typeplaceofresidence, education, wealth, ancvisi
         'twbirthinlast3years': [twbirthinlast3years],
         'twinchild': [twinchild],
         'drugsforintestinalparasites': [drugsforintestinalparasites]
-    })
-
+    }
     # Perform any necessary data preprocessing (e.g., encoding categorical variables)
     # Example: One-hot encode categorical variables
-    categorical_cols = ['typeplaceofresidence', 'education', 'wealth', 'deliverybyCS', 'twinchild', 'drugsforintestinalparasites']
-    encoder = OneHotEncoder(drop='first')
-    encoded_data = encoder.fit_transform(data[categorical_cols])
+    def encode_label(label, dictionary: Dict):
 
-    # Replace original columns with encoded ones
-    data.drop(columns=categorical_cols, inplace=True)
-    data = pd.concat([data, pd.DataFrame(encoded_data, columns=encoder.get_feature_names_out(categorical_cols))], axis=1)
-
-    return data
+        return dictionary.get(label)
+    return [encode_label(mothersage, age_mapping),encode_label(typeplaceofresidence, typeplaceofresidence_mapping), 
+            encode_label(education, education_mapping),
+            encode_label(wealth, wealth_mapping),
+            float(ancvisits),encode_label(deliverybyCS, deliverybyCS_mapping),
+            float(twbirthinlast3years),
+            encode_label(twinchild, twinchild_mapping),
+            encode_label(drugsforintestinalparasites, drugsforintestinalparasites_mapping),
+             ]
 
 # Streamlit app code
 st.title("Low Birth Weight Prediction Application")
@@ -51,7 +53,7 @@ st.subheader("A simple app to predict whether a baby is likely to have low birth
 
 # Form to collect user information
 my_form = st.form(key="LBW_form")
-mothersage = my_form.number_input("Enter the age of the mother", min_value=1, max_value=100)
+mothersage = my_form.selectbox("Select the age range of the mother", ["15-19", "20-24", "25-29", "30-34", "35-49"])
 typeplaceofresidence = my_form.selectbox("Select the type of place of residence", ["Urban", "Rural"])
 education = my_form.selectbox("Select the highest level of education", ["No education", "Primary", "Secondary", "Higher"])
 wealth = my_form.selectbox("Select the wealth index", ["Poorest", "Poorer", "Middle", "Richer", "Richest"])
@@ -69,8 +71,8 @@ if submit:
                                  twbirthinlast3years, twinchild, drugsforintestinalparasites)
 
     # Perform prediction using the loaded model
-    prediction = model.predict(input_data)
-    prediction_proba = model.predict_proba(input_data)
+    prediction = model.predict((input_data,))
+    prediction_proba = model.predict_proba((input_data,))
 
     # Display prediction result
     st.header("Prediction Result")
